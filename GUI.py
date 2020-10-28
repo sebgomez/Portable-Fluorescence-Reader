@@ -1,6 +1,6 @@
 import tkinter as tk
 import tkinter.font
-##import picamera
+import picamera
 import RPi.GPIO as GPIO
 import time
 from PIL import ImageTk, Image
@@ -34,9 +34,9 @@ try:
         cam=picamera.PiCamera()
         cam.resolution = (320, 240)
         cam.capture('foto.jpg',use_video_port=True)
-        #img = ImageTk.PhotoImage(Image.open("foto.jpg"))
-        #panel.configure(image = img)
-        #panel.image=img
+        img = ImageTk.PhotoImage(Image.open("foto.jpg"))
+        panel.configure(image = img)
+        panel.image=img
         cam.close()
         time.sleep(2.5)
         if dc:
