@@ -7,6 +7,7 @@ from PIL import ImageTk, Image
 import os
 
 try:
+    #configura la ventana principal(tamaño, título, fullscreen)
     win=tk.Tk()
     win.geometry('480x320')
     win.title("Integrador 2")
@@ -14,6 +15,7 @@ try:
     win.attributes('-fullscreen', True)
     win.bind('<Escape>',lambda e: win.destroy())
 
+    #establece los pins que se usarán como la entrada del potenciómetro
     inputPins=[11,13,15,16]
     inputs=[0,0,0,0]
     reading=""
@@ -23,10 +25,12 @@ try:
     for pin in inputPins:
         GPIO.setup(pin, GPIO.IN)
     
+    #establece el pin que se usará para controlar la intensidad del led
     pwm = GPIO.PWM(12, 100)
     dc = False
     pwm.start(0)
 
+    #toma una foto, la guarda en disco y la muestra en pantalla
     def takePicture(pwm):
         global dc
         #pwm.ChangeDutyCycle(50)
@@ -39,15 +43,15 @@ try:
         panel.image=img
         cam.close()
         time.sleep(2.5)
-        if dc:
-            pwm.ChangeDutyCycle(slider.get())
-        else:
-            pwm.ChangeDutyCycle(0)
+#         if dc:
+#             pwm.ChangeDutyCycle(slider.get())
+#         else:
+#             pwm.ChangeDutyCycle(0)
             
     def exitProgram():
         win.destroy()
 
-
+    #cambia el estado del LED
     def changeLEDstate(pwm,val):
         global dc
         if dc:                
@@ -58,11 +62,11 @@ try:
             pwm.ChangeDutyCycle(val)
         
             
-
+    #cambia la intensidad del LED
     def changeLedIntensity(value):
         pwm.ChangeDutyCycle(value)
 
-    #panel para mostrar la intensidad
+    #label para mostrar la intensidad
     text = tk.StringVar()    
     panel = tk.Label(win, textvariable=text)
     panel.pack(fill=tk.BOTH, expand=True)
@@ -71,19 +75,19 @@ try:
     slider = tk.Scale(win, from_=100, to=0)
     slider.pack(fill=tk.X, expand=True)
     
-    #boton tomar foto
+    #botón para tomar foto
     camShot=tk.Button(win, text="Tomar foto", font=myFont, command= lambda: takePicture(pwm), bg='bisque2')
     camShot.pack(fill=tk.X, expand=True)
     
-    #boton de encendido/apagado del led
+    #botón de encendido/apagado del led
     onButton=tk.Button(win, text='Led (On/Off)', font=myFont, command= lambda: changeLEDstate(pwm,slider.get()), bg='bisque2')
     onButton.pack(fill=tk.X, expand=True)
     
-    #boton de configuracion
+    #botón de configuración
     configButton=tk.Button(win, text='Configuración', font=myFont, bg='cyan')
     configButton.pack(fill=tk.X, expand=True)
     
-    #baton para salir
+    #botón para salir
     exitButton=tk.Button(win, text='Salir', font=myFont, command=exitProgram, bg='cyan')
     exitButton.pack(fill=tk.X, expand=True)
 
@@ -93,17 +97,22 @@ try:
         win.update_idletasks()
         win.update()
         #if slider.get() != backup_slider and dc:
+        #cambia la intensidad del led solo si la posición del slider cambió
         if slider.get() != backup_slider:
             backup_slider = slider.get()
             text.set('Intensidad: '+str(backup_slider))
             pwm.ChangeDutyCycle(backup_slider)
+            
+        #toma la lectura del ADC y la concatena en un binario    
         for i,pin in enumerate(inputPins):
             inputs[i] = GPIO.input(pin)
             reading+=str(inputs[i])
-        
+            
+        #convierte la lectura de binario a decimal    
         print(int(reading[::-1],2))
         reading=int(reading[::-1],2)
         
+        #cambia la intensidad del led solo si la lectura del potenciómetro cambió
         if reading != last_reading:
             last_reading = reading
             reading = (reading/15)*100
