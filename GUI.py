@@ -1,12 +1,14 @@
 import tkinter as tk
 import tkinter.font
-import picamera
 import RPi.GPIO as GPIO
 import time
+import numpy as np
+from picamera import PiCamera
 from PIL import ImageTk, Image
-import os
+#from skimage import io
 
 try:
+    GPIO.setwarnings(False)
     #configura la ventana principal(tamaño, título, fullscreen)
     win=tk.Tk()
     win.geometry('480x320')
@@ -33,16 +35,35 @@ try:
     #toma una foto, la guarda en disco y la muestra en pantalla
     def takePicture(pwm):
         global dc
-        #pwm.ChangeDutyCycle(50)
-        time.sleep(2.5)
-        cam=picamera.PiCamera()
+        #time.sleep(2.5)
+        cam=PiCamera()
         cam.resolution = (320, 240)
+        cam.brightness = 50
+        #cam.contrast = 50
+        cam.exposure_mode = 'night'
+        #cam.image_effect = 'colorbalance'
+
         cam.capture('foto.jpg',use_video_port=True)
         img = ImageTk.PhotoImage(Image.open("foto.jpg"))
         panel.configure(image = img)
         panel.image=img
-        cam.close()
-        time.sleep(2.5)
+        
+        #image=io.imread('foto.jpg')
+        #image=img_as_float(image)
+        #print(np.mean(image))
+        
+        im = Image.open('foto.jpg')
+        pix_val = list(im.getdata())
+        pix_val_flat = [x for sets in pix_val for x in sets]
+        #print(np.average(pix_val_flat))
+        text2.set('Intensidad: '+ str(np.round(np.average(pix_val))))
+
+        #panel = tk.Label(win, textvariable=text)
+        #panel.pack(fill=tk.BOTH, expand=True)
+
+        time.sleep(0.1)
+        cam.close()  
+        #time.sleep(2.5)
 #         if dc:
 #             pwm.ChangeDutyCycle(slider.get())
 #         else:
@@ -65,11 +86,17 @@ try:
     #cambia la intensidad del LED
     def changeLedIntensity(value):
         pwm.ChangeDutyCycle(value)
-
-    #label para mostrar la intensidad
+        
+    #panel para mostrar la imagen
     text = tk.StringVar()    
     panel = tk.Label(win, textvariable=text)
     panel.pack(fill=tk.BOTH, expand=True)
+    
+    #label para mostrar la intensidad capturada
+    text2 = tk.StringVar()    
+    panel2 = tk.Label(win, textvariable=text2)
+    panel2.pack(fill=tk.BOTH, expand=True)
+    text2.set('Intensidad: ')
     
     #slider para controlar la intensidad del led
     slider = tk.Scale(win, from_=100, to=0)
@@ -91,6 +118,9 @@ try:
     exitButton=tk.Button(win, text='Salir', font=myFont, command=exitProgram, bg='cyan')
     exitButton.pack(fill=tk.X, expand=True)
 
+
+
+    
     backup_slider = slider.get()
     
     while True:
@@ -100,7 +130,12 @@ try:
         #cambia la intensidad del led solo si la posición del slider cambió
         if slider.get() != backup_slider:
             backup_slider = slider.get()
-            text.set('Intensidad: '+str(backup_slider))
+            
+            #text = tk.StringVar()    
+            #panel = tk.Label(win, textvariable=text)
+            #panel.pack(fill=tk.BOTH, expand=True)
+            
+            #text.set('Intensidad: '+str(backup_slider))
             pwm.ChangeDutyCycle(backup_slider)
             
         #toma la lectura del ADC y la concatena en un binario    
@@ -109,7 +144,7 @@ try:
             reading+=str(inputs[i])
             
         #convierte la lectura de binario a decimal    
-        print(int(reading[::-1],2))
+        #print(int(reading[::-1],2))
         reading=int(reading[::-1],2)
         
         #cambia la intensidad del led solo si la lectura del potenciómetro cambió
@@ -122,5 +157,5 @@ try:
         #time.sleep(0.5)
         
 finally:
-        pwm.stop()                         
-        GPIO.cleanup()
+    pwm.stop()                         
+    GPIO.cleanup()
