@@ -26,7 +26,7 @@ def takePicture(pwm):
     #calcula el color promedio de los pixeles en la imagen
     im = Image.open('foto.jpg')
     pix_val = list(im.getdata())
-    pix_val_flat = [x for sets in pix_val for x in sets]
+    #pix_val_flat = [x for sets in pix_val for x in sets]
     text2.set('Intensidad: '+ str(np.round(np.average(pix_val))))
 
     #panel = tk.Label(win, textvariable=text)
@@ -106,8 +106,9 @@ try:
     backup_slider = slider.get()
     
     #toma el valor del potenciómetro y cambia la intensidad según esto
-    def getPotValue(last_reading):
+    def getPotValue():
         #toma la lectura del ADC y la concatena en un binario
+        global last_reading
         tmp=""
         for i,pin in enumerate(inputPins):
             tmp+=str(GPIO.input(pin))
@@ -116,12 +117,12 @@ try:
         reading=int(tmp[::-1],2)
         
         #cambia la intensidad del led solo si la lectura del potenciómetro cambió
+        print("current:" + str(reading) + "last: " + str(last_reading))
         if reading != last_reading:
             last_reading = reading
             reading = (reading/15)*100 #mapea la lectura de 0-15(resolución del ADC) a 0-100
             pwm.ChangeDutyCycle(reading)
             slider.set(reading)
-        return last_reading
         
     while True:     
         #actualiza la GUI
@@ -139,8 +140,9 @@ try:
             #panel.pack(fill=tk.BOTH, expand=True)
             #text.set('Intensidad: '+str(backup_slider))
         
-        #cambia la intensidad del led con el valor del potenciómetro
-        #last_reading=getPotValue(last_reading)
+        #cambia la intensidad del led con el valor del potenciómetro (comentar si no hay pot)
+        
+        getPotValue()
                         
         #time.sleep(0.5)
         
