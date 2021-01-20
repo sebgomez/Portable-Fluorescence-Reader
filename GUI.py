@@ -7,7 +7,7 @@ from picamera import PiCamera
 from PIL import ImageTk, Image
 
 #toma una foto, la guarda en disco y la muestra en pantalla
-def takePicture(pwm):
+def takePicture():
     global dc
     #time.sleep(2.5)
     cam=PiCamera()
@@ -36,15 +36,19 @@ def takePicture(pwm):
     cam.close()  
 
 #cambia el estado del LED
-def changeLEDstate(pwm,val):
+def changeLEDstate():
     global dc
+    global last_read
     if dc:                
         dc=False
+        last_read=slider.get()
         pwm.ChangeDutyCycle(0)
+        slider.set(0)
     else:   
         dc=True
-        pwm.ChangeDutyCycle(val)
-        
+        pwm.ChangeDutyCycle(last_read)
+        slider.set(last_read)
+  
 def exitProgram():
     win.destroy()
             
@@ -66,11 +70,12 @@ try:
     #configura el pin que se usa para controlar la intensidad del led
     GPIO.setup(12, GPIO.OUT)
     pwm = GPIO.PWM(12, 100)
-    dc = False #estado del led(false=off,true=on)
+    dc = True #estado del led(false=off,true=on)
+    last_read = 0 #intensidad del led antes de apagarse
     pwm.start(0)
     
-    reading=0 #lectura actual del slider
-    last_reading=0 #lectura previa del slider
+    #reading=0 #lectura actual del pot
+    last_reading=0 #lectura previa del pot
     
     #panel para mostrar la imagen
     text = tk.StringVar()    
@@ -88,11 +93,11 @@ try:
     slider.pack(fill=tk.X, expand=True)
     
     #botón para tomar foto
-    camShot=tk.Button(win, text="Tomar foto", font=myFont, command= lambda: takePicture(pwm), bg='bisque2')
+    camShot=tk.Button(win, text="Tomar foto", font=myFont, command= lambda: takePicture(), bg='bisque2')
     camShot.pack(fill=tk.X, expand=True)
     
     #botón de encendido/apagado del led
-    onButton=tk.Button(win, text='Led (On/Off)', font=myFont, command= lambda: changeLEDstate(pwm,slider.get()), bg='bisque2')
+    onButton=tk.Button(win, text='Led (On/Off)', font=myFont, command= lambda: changeLEDstate(), bg='bisque2')
     onButton.pack(fill=tk.X, expand=True)
     
     #botón de configuración(no hace nada)
@@ -105,7 +110,7 @@ try:
     
     backup_slider = slider.get()
     
-    #toma el valor del potenciómetro y cambia la intensidad según esto
+    #toma el valor del potenciómetro y cambia la intensidad según este valor
     def getPotValue():
         #toma la lectura del ADC y la concatena en un binario
         global last_reading
@@ -120,9 +125,10 @@ try:
         print("current:" + str(reading) + "last: " + str(last_reading))
         if reading != last_reading:
             last_reading = reading
-            reading = (reading/15)*100 #mapea la lectura de 0-15(resolución del ADC) a 0-100
+            reading = int((reading/15)*100) #mapea la lectura de 0-15(resolución del ADC) a 0-100
             pwm.ChangeDutyCycle(reading)
             slider.set(reading)
+        #time.sleep(1)
         
     while True:     
         #actualiza la GUI
@@ -141,7 +147,6 @@ try:
             #text.set('Intensidad: '+str(backup_slider))
         
         #cambia la intensidad del led con el valor del potenciómetro (comentar si no hay pot)
-        
         getPotValue()
                         
         #time.sleep(0.5)
